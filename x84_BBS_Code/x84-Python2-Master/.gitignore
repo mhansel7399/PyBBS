@@ -1,0 +1,15 @@
+build
+dist
+lint
+x84.egg-info
+ENV
+x84-dev
+run
+.DS_Store
+*.pyc
+*.swp
+*~
+.tox
+MANIFEST
+python_modules
+.vscode
