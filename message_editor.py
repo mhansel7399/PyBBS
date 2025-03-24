@@ -1,13 +1,29 @@
-import os
 import json
+from textwrap import wrap
 from datetime import datetime
 
-DATA_DIR = "bbs_data"
-os.makedirs(DATA_DIR, exist_ok=True)
+def write_message(reader, writer, recv_line):
+    """Handles writing a multi-line message."""
+    writer.write("Enter your message (Press Enter for a new line, type '.' on a new line to finish):\r\n")
+    message_content = ""
+    while True:
+        line = await recv_line()
+        if line.strip() == ".":  # User signals end of message with "."
+            break
+        message_content += line + "\n"  # Append newline character
+    return message_content.strip()
 
-def save_message(board_name, content):
-    board_path = os.path.join(DATA_DIR, board_name)
-    os.makedirs(board_path, exist_ok=True)
+def wrap_message(content, width=80):
+    """Wraps a message to the specified width."""
+    return "\n".join(wrap(content, width))
+
+async def save_message(board_name, content, data_dir="bbs_data"):
+    """Saves the message to the specified board."""
+    import os
+
+    board_path = os.path.join(data_dir, board_name)
+    if not os.path.exists(board_path):
+        return f"Board '{board_name}' does not exist."
 
     metadata_file = os.path.join(board_path, "metadata.json")
     if os.path.exists(metadata_file):
@@ -29,20 +45,3 @@ def save_message(board_name, content):
         json.dump(board_metadata, f, indent=4)
 
     return f"Message {message_id} saved to board '{board_name}'."
-
-def load_messages(board_name):
-    board_path = os.path.join(DATA_DIR, board_name)
-    metadata_file = os.path.join(board_path, "metadata.json")
-
-    if not os.path.exists(metadata_file):
-        return []
-
-    with open(metadata_file, "r") as f:
-        board_metadata = json.load(f)
-
-    messages = []
-    for message_info in board_metadata["messages"]:
-        with open(os.path.join(board_path, message_info["file"]), "r") as f:
-            messages.append(json.load(f))
-
-    return messages
