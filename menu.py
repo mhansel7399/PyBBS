@@ -12,7 +12,7 @@ Choose an option: """
         choice = recv_line(client_socket)
 
         if choice == '1':
-            # Call the message board menu
+            # Redirect to the message board menu
             message_base_manager.message_board_menu(client_socket, recv_line)
         elif choice == '2':
             client_socket.send(b"Goodbye!\r\n")

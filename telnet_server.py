@@ -1,7 +1,7 @@
 import socket
 import threading
 import user_management
-import menu  # Import the main menu module
+import menu
 
 running = True
 
@@ -22,17 +22,17 @@ def handle_client(client_socket):
         return line.strip()
 
     try:
-        # Delegate user authentication flow
+        # Handle authentication flow
         authenticated = user_management.handle_user_authentication_flow(client_socket, recv_line)
         if not authenticated:
             client_socket.send(b"Connection closed.\r\n")
             client_socket.close()
             return
 
-        # Call the main menu after successful authentication
+        # Redirect to main menu after successful authentication
         menu.main_menu(client_socket, recv_line)
     except Exception as e:
-        # Log the error and close the connection
+        # Log the error and notify the client
         print(f"Error handling client: {e}")
         client_socket.send(b"An error occurred. Connection closed.\r\n")
         client_socket.close()
