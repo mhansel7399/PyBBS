@@ -1,7 +1,7 @@
 import socket
 import threading
-import message_editor
 import user_management
+import message_base_manager  # Import the new module
 
 # Global flag to control server loop
 running = True
@@ -20,13 +20,13 @@ def handle_client(client_socket):
             line += char
         return line.strip()
 
-    # Welcome and authentication
+    # Authentication/Registration
     client_socket.send(b"Welcome to the Python BBS!\r\n")
     client_socket.send(b"Do you want to (1) Register or (2) Login? ")
     choice = recv_line(client_socket)
 
     if choice == '1':
-        client_socket.send(b"\r\nEnter a new username: ")
+        client_socket.send(b"Enter a new username: ")
         username = recv_line(client_socket)
         client_socket.send(b"\r\nEnter a new password: ")
         password = recv_line(client_socket, mask_input=True)
@@ -37,7 +37,7 @@ def handle_client(client_socket):
             client_socket.close()
             return
     elif choice == '2':
-        client_socket.send(b"\r\nUsername: ")
+        client_socket.send(b"Username: ")
         username = recv_line(client_socket)
         client_socket.send(b"\r\nPassword: ")
         password = recv_line(client_socket, mask_input=True)
@@ -54,31 +54,46 @@ def handle_client(client_socket):
     # Main menu
     while True:
         menu = """
-\r\nMain Menu:
-\r\n1. Post a new message
-\r\n2. View messages
-\r\n3. Exit
-\r\nChoose an option: """
+Main Menu:
+1. List message boards
+2. Create a new message board
+3. Post a new message
+4. View messages
+5. Exit
+Choose an option: """
         client_socket.send(menu.encode('utf-8'))
         choice = recv_line(client_socket)
 
         if choice == '1':
-            client_socket.send(b"\r\nEnter the board name: ")
-            board_name = recv_line(client_socket)
-            client_socket.send(b"\r\nEnter your message: ")
-            content = recv_line(client_socket)
-            result = message_editor.save_message(board_name, content)
-            client_socket.send(f"{result}\r\n".encode('utf-8'))
+            boards = message_base_manager.list_boards()
+            if boards:
+                client_socket.send(b"Available message boards:\r\n")
+                for board in boards:
+                    client_socket.send(f"- {board}\r\n".encode('utf-8'))
+            else:
+                client_socket.send(b"No message boards found.\r\n")
         elif choice == '2':
-            client_socket.send(b"\r\nEnter the board name: ")
+            client_socket.send(b"Enter the name of the new board: ")
             board_name = recv_line(client_socket)
-            messages = message_editor.load_messages(board_name)
+            result = message_base_manager.create_board(board_name)
+            client_socket.send(f"{result}\r\n".encode('utf-8'))
+        elif choice == '3':
+            client_socket.send(b"Enter the board name: ")
+            board_name = recv_line(client_socket)
+            client_socket.send(b"Enter your message: ")
+            content = recv_line(client_socket)
+            result = message_base_manager.save_message(board_name, content)
+            client_socket.send(f"{result}\r\n".encode('utf-8'))
+        elif choice == '4':
+            client_socket.send(b"Enter the board name: ")
+            board_name = recv_line(client_socket)
+            messages = message_base_manager.load_messages(board_name)
             if not messages:
-                client_socket.send(b"\r\nNo messages found.\r\n")
+                client_socket.send(b"No messages found.\r\n")
             else:
                 for msg in messages:
                     client_socket.send(f"ID: {msg['id']} | {msg['timestamp']}\r\n{msg['content']}\r\n{'-'*40}\r\n".encode('utf-8'))
-        elif choice == '3':
+        elif choice == '5':
             client_socket.send(b"Goodbye!\r\n")
             break
         else:
