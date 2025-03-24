@@ -2,6 +2,20 @@ import json
 
 USER_FILE = 'users.json'
 
+def handle_user_authentication_flow(client_socket, recv_line):
+    """Handles the user authentication flow (welcome, register, or login)."""
+    client_socket.send(b"Welcome to the Python BBS!\r\n")
+    client_socket.send(b"Do you want to (1) Register or (2) Login? ")
+    choice = recv_line(client_socket)
+
+    if choice == '1':  # Registration
+        return handle_registration(client_socket, recv_line)
+    elif choice == '2':  # Login
+        return handle_authentication(client_socket, recv_line)
+    else:
+        client_socket.send(b"Invalid choice. Connection closed.\r\n")
+        return False
+
 def load_users():
     try:
         with open(USER_FILE, 'r') as file:
