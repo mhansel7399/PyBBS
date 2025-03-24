@@ -8,21 +8,25 @@ running = True
 def handle_client(client_socket):
     """Handles client communication and delegates tasks to appropriate modules."""
     def recv_line(sock, mask_input=False):
-        """Receives a line of input from the client."""
+        """Receives a line of input from the client and handles backspace properly."""
         line = ""
         while True:
             char = sock.recv(1).decode('utf-8')
-            if char in ('\n', '\r'):
+            if char in ('\n', '\r'):  # End of input
                 break
-            if mask_input:
+            if char == '\x08':  # Backspace character
+                line = line[:-1]  # Remove the last character from the line
+                sock.send(b'\b \b')  # Send backspace visual update to client
+            elif mask_input:
                 sock.send(b'#')  # Mask input for passwords
+                line += char
             else:
                 sock.send(char.encode('utf-8'))
-            line += char
+                line += char
         return line.strip()
 
     try:
-        # Handle authentication flow
+        # Delegate user authentication flow
         authenticated = user_management.handle_user_authentication_flow(client_socket, recv_line)
         if not authenticated:
             client_socket.send(b"Connection closed.\r\n")
