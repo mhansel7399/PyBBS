@@ -26,7 +26,7 @@ def handle_client(client_socket):
     choice = recv_line(client_socket)
 
     if choice == '1':
-        client_socket.send(b"Enter a new username: ")
+        client_socket.send(b"\r\nEnter a new username: ")
         username = recv_line(client_socket)
         client_socket.send(b"\r\nEnter a new password: ")
         password = recv_line(client_socket, mask_input=True)
@@ -37,7 +37,7 @@ def handle_client(client_socket):
             client_socket.close()
             return
     elif choice == '2':
-        client_socket.send(b"Username: ")
+        client_socket.send(b"\r\nUsername: ")
         username = recv_line(client_socket)
         client_socket.send(b"\r\nPassword: ")
         password = recv_line(client_socket, mask_input=True)
@@ -54,27 +54,27 @@ def handle_client(client_socket):
     # Main menu
     while True:
         menu = """
-Main Menu:
-1. Post a new message
-2. View messages
-3. Exit
-Choose an option: """
+\r\nMain Menu:
+\r\n1. Post a new message
+\r\n2. View messages
+\r\n3. Exit
+\r\nChoose an option: """
         client_socket.send(menu.encode('utf-8'))
         choice = recv_line(client_socket)
 
         if choice == '1':
-            client_socket.send(b"Enter the board name: ")
+            client_socket.send(b"\r\nEnter the board name: ")
             board_name = recv_line(client_socket)
-            client_socket.send(b"Enter your message: ")
+            client_socket.send(b"\r\nEnter your message: ")
             content = recv_line(client_socket)
             result = message_editor.save_message(board_name, content)
             client_socket.send(f"{result}\r\n".encode('utf-8'))
         elif choice == '2':
-            client_socket.send(b"Enter the board name: ")
+            client_socket.send(b"\r\nEnter the board name: ")
             board_name = recv_line(client_socket)
             messages = message_editor.load_messages(board_name)
             if not messages:
-                client_socket.send(b"No messages found.\r\n")
+                client_socket.send(b"\r\nNo messages found.\r\n")
             else:
                 for msg in messages:
                     client_socket.send(f"ID: {msg['id']} | {msg['timestamp']}\r\n{msg['content']}\r\n{'-'*40}\r\n".encode('utf-8'))

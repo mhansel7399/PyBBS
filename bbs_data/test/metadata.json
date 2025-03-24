@@ -1,0 +1,12 @@
+{
+    "messages": [
+        {
+            "id": 1,
+            "file": "message_1.json"
+        },
+        {
+            "id": 2,
+            "file": "message_2.json"
+        }
+    ]
+}
