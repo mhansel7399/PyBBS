@@ -1,67 +1,79 @@
 import json
-from textwrap import wrap
 from datetime import datetime
 import os
+from textwrap import wrap
 
 DATA_DIR = "bbs_data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-async def write_message(reader, writer, recv_line, wrap_width=78):
-    """Handles writing a multi-line message with live word wrapping."""
+async def write_message(reader, writer, recv_line, wrap_width=80):
+    """Handles writing a multi-line message with live word wrapping and accurate end signal detection."""
     writer.write("Enter your message (Type '.' on a new line to finish):\r\n")
     await writer.drain()
 
-    message_content = []
-    current_line = []
-    line_length = 0
+    message_content = []  # Stores completed lines of the message
+    current_line = []     # Stores characters for the current line
+    word_buffer = []      # Temporary storage for the current word
+    line_length = 0       # Tracks the current line's character count
 
     while True:
-        char = await reader.read(1)
+        char = await reader.read(1)  # Read one character from the client
         if not char:  # Handle disconnection
             return None
 
-        if char in ('\n', '\r'):  # Newline character
-            if ''.join(current_line).strip() == ".":  # End of message
+        if char in ('\n', '\r'):  # User presses Enter
+            # Join the current word buffer and line to form the full current line
+            full_line = ''.join(current_line + word_buffer).strip()
+            if full_line == ".":  # Detect only a single period as the end signal
                 break
-            message_content.append(''.join(current_line).strip())  # Append the current line
+            message_content.append(full_line)  # Add the completed line to the message
             writer.write("\r\n")  # Move to the next line visually
             await writer.drain()
-            current_line = []
-            line_length = 0
+            current_line = []  # Reset the current line
+            word_buffer = []   # Reset the word buffer
+            line_length = 0    # Reset the line length counter
 
         elif char == '\x08':  # Backspace character
-            if current_line:
-                current_line.pop()  # Remove the last character
+            if word_buffer:  # Remove from the current word first
+                word_buffer.pop()
+            elif current_line:  # Then remove from the current line
+                current_line.pop()
                 line_length -= 1
-                writer.write("\b \b")  # Visual backspace
-                await writer.drain()
-
-        else:
-            current_line.append(char)
-            line_length += 1
-            writer.write(char)  # Echo character to client
+            writer.write("\b \b")  # Visual feedback for backspace
             await writer.drain()
 
-            if line_length >= wrap_width:  # Check for word wrap
-                # Find the last space in the current line
-                last_space_index = ''.join(current_line).rfind(' ')
-                if last_space_index != -1:
-                    # Wrap at the last space
-                    message_content.append(''.join(current_line[:last_space_index]).strip())
-                    writer.write("\r\n")  # Move to the next line visually
-                    await writer.drain()
-                    # Carry over remaining characters after the space
-                    current_line = current_line[last_space_index + 1:]
-                    line_length = len(''.join(current_line))  # Update line length
-                else:
-                    # No space found, force wrap
-                    message_content.append(''.join(current_line).strip())
-                    writer.write("\r\n")
-                    await writer.drain()
-                    current_line = []
-                    line_length = 0
+        else:
+            # Check if the character is a space
+            if char == ' ':
+                # Add the current word buffer to the line
+                current_line.extend(word_buffer)
+                current_line.append(char)  # Add the space
+                word_buffer = []  # Reset the buffer
+                line_length = len(''.join(current_line))
+            else:
+                word_buffer.append(char)  # Add character to the word buffer
 
-    # Join all lines into the final message
+            # Check if the line length exceeds the wrap width
+            if line_length + len(''.join(word_buffer)) >= wrap_width:
+                # Move the entire word buffer to the next line
+                current_line.extend(word_buffer)  # Ensure word buffer is part of the current line
+                message_content.append(''.join(current_line).strip())  # Complete the line
+                writer.write("\r\n")  # Move visually to the next line
+                await writer.drain()
+                current_line = []  # Start fresh for the next line
+                word_buffer = []  # Reset the buffer
+                line_length = 0  # Reset line length
+
+            # Echo characters back as they are typed
+            writer.write(char)
+            await writer.drain()
+
+    # Add any remaining content in the buffers to the final message
+    if word_buffer:
+        current_line.extend(word_buffer)
+    if current_line:
+        message_content.append(''.join(current_line).strip())
+
     return '\n'.join(message_content).strip()
 
 def wrap_message(content, width=80):
