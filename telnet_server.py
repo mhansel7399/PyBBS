@@ -21,15 +21,21 @@ def handle_client(client_socket):
             line += char
         return line.strip()
 
-    # User authentication flow
-    if not user_management.handle_user_authentication_flow(client_socket, recv_line):
+    try:
+        # Delegate user authentication flow
+        authenticated = user_management.handle_user_authentication_flow(client_socket, recv_line)
+        if not authenticated:
+            client_socket.send(b"Connection closed.\r\n")
+            client_socket.close()
+            return
+
+        # Call the main menu after successful authentication
+        menu.main_menu(client_socket, recv_line)
+    except Exception as e:
+        # Log the error and close the connection
+        print(f"Error handling client: {e}")
+        client_socket.send(b"An error occurred. Connection closed.\r\n")
         client_socket.close()
-        return
-
-    # Call the main menu after successful authentication
-    menu.main_menu(client_socket, recv_line)
-
-    client_socket.close()
 
 def start_telnet_server(host='0.0.0.0', port=23):
     """Starts the Telnet server."""
