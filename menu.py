@@ -15,7 +15,8 @@ Choose an option: """
             # Redirect to the message board menu
             message_base_manager.message_board_menu(client_socket, recv_line)
         elif choice == '2':
-            client_socket.send(b"Goodbye!\r\n")
+            client_socket.send(b"Goodbye! Disconnecting...\r\n")
+            client_socket.close()  # Gracefully close the connection
             break
         else:
             client_socket.send(b"Invalid option. Please try again.\r\n")
