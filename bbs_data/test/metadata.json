@@ -7,6 +7,10 @@
         {
             "id": 2,
             "file": "message_2.json"
+        },
+        {
+            "id": 3,
+            "file": "message_3.json"
         }
     ]
 }

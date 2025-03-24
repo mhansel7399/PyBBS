@@ -1,27 +1,55 @@
 import json
 from textwrap import wrap
 from datetime import datetime
+import os
 
-def write_message(reader, writer, recv_line):
-    """Handles writing a multi-line message."""
+DATA_DIR = "bbs_data"
+os.makedirs(DATA_DIR, exist_ok=True)
+
+async def write_message(reader, writer, recv_line, wrap_width=80):
+    """Handles writing a multi-line message with real-time word wrapping and newline visibility."""
     writer.write("Enter your message (Press Enter for a new line, type '.' on a new line to finish):\r\n")
+    await writer.drain()
+
     message_content = ""
+    current_line = ""
     while True:
-        line = await recv_line()
-        if line.strip() == ".":  # User signals end of message with "."
-            break
-        message_content += line + "\n"  # Append newline character
+        char = await reader.read(1)
+        if not char:  # Handle disconnection
+            return None
+
+        if char in ('\n', '\r'):  # End of line
+            if current_line.strip() == ".":  # User signals end of message
+                break
+            message_content += current_line.strip() + "\n"
+            writer.write("\r\n")  # Move to the next line visually
+            await writer.drain()
+            current_line = ""
+        elif char == '\x08':  # Backspace
+            if current_line:
+                current_line = current_line[:-1]  # Remove last character
+                writer.write("\b \b")  # Visual backspace
+                await writer.drain()
+        else:
+            current_line += char
+            if len(current_line) > wrap_width:  # Handle word wrapping
+                message_content += current_line.strip() + "\n"
+                writer.write("\r\n")  # Move to the next line visually
+                await writer.drain()
+                current_line = ""  # Reset the current line
+            else:
+                writer.write(char)  # Echo the character to the client
+                await writer.drain()
+
     return message_content.strip()
 
 def wrap_message(content, width=80):
     """Wraps a message to the specified width."""
     return "\n".join(wrap(content, width))
 
-async def save_message(board_name, content, data_dir="bbs_data"):
+async def save_message(board_name, content):
     """Saves the message to the specified board."""
-    import os
-
-    board_path = os.path.join(data_dir, board_name)
+    board_path = os.path.join(DATA_DIR, board_name)
     if not os.path.exists(board_path):
         return f"Board '{board_name}' does not exist."
 
