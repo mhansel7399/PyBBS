@@ -39,8 +39,7 @@ async def handle_client(reader, writer):
         if not authenticated:
             writer.write("Connection closed.\r\n")
             await writer.drain()
-            writer.close()
-            await writer.wait_closed()
+            writer.close()  # Close connection (no wait_closed)
             return
 
         # Redirect to main menu after successful authentication
@@ -51,8 +50,7 @@ async def handle_client(reader, writer):
         print(f"Error handling client: {e}")
         writer.write("An error occurred. Connection closed.\r\n")
         await writer.drain()
-        writer.close()
-        await writer.wait_closed()
+        writer.close()  # Close connection (no wait_closed)
 
 async def start_telnet_server(host='0.0.0.0', port=23):
     """Starts the Telnet server using telnetlib3."""

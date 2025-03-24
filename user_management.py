@@ -14,10 +14,12 @@ def save_users(users):
         json.dump(users, file, indent=4)
 
 def authenticate(username, password):
+    """Checks if the username and password match."""
     users = load_users()
     return username in users and users[username] == password
 
 def add_user(username, password):
+    """Adds a new user to the system."""
     users = load_users()
     if username in users:
         return False  # User already exists
@@ -25,52 +27,67 @@ def add_user(username, password):
     save_users(users)
     return True
 
-def handle_registration(client_socket, recv_line):
+async def handle_registration(reader, writer, recv_line):
     """Handles user registration via the telnet server."""
-    client_socket.send(b"Enter a new username: ")
-    username = recv_line(client_socket)
-    client_socket.send(b"\r\nEnter a new password: ")
-    password = recv_line(client_socket, mask_input=True)
+    writer.write("Enter a new username: ")
+    await writer.drain()
+    username = await recv_line()
+
+    writer.write("\r\nEnter a new password: ")
+    await writer.drain()
+    password = await recv_line(mask_input=True)
 
     if not username or not password:
-        client_socket.send(b"\r\nUsername or password cannot be empty. Connection closed.\r\n")
+        writer.write("\r\nUsername or password cannot be empty. Connection closed.\r\n")
+        await writer.drain()
         return False
 
     if add_user(username, password):
-        client_socket.send(b"\r\nRegistration successful!\r\n")
+        writer.write("\r\nRegistration successful!\r\n")
+        await writer.drain()
         return True
     else:
-        client_socket.send(b"\r\nUsername already exists. Connection closed.\r\n")
+        writer.write("\r\nUsername already exists. Connection closed.\r\n")
+        await writer.drain()
         return False
 
-def handle_authentication(client_socket, recv_line):
+async def handle_authentication(reader, writer, recv_line):
     """Handles user authentication via the telnet server."""
-    client_socket.send(b"Username: ")
-    username = recv_line(client_socket)
-    client_socket.send(b"\r\nPassword: ")
-    password = recv_line(client_socket, mask_input=True)
+    writer.write("Username: ")
+    await writer.drain()
+    username = await recv_line()
+
+    writer.write("\r\nPassword: ")
+    await writer.drain()
+    password = await recv_line(mask_input=True)
 
     if not username or not password:
-        client_socket.send(b"\r\nUsername or password cannot be empty. Connection closed.\r\n")
+        writer.write("\r\nUsername or password cannot be empty. Connection closed.\r\n")
+        await writer.drain()
         return False
 
+    # Call the `authenticate` function here
     if authenticate(username, password):
-        client_socket.send(b"\r\nLogin successful!\r\n")
+        writer.write("\r\nLogin successful!\r\n")
+        await writer.drain()
         return True
     else:
-        client_socket.send(b"\r\nInvalid credentials. Connection closed.\r\n")
+        writer.write("\r\nInvalid credentials. Connection closed.\r\n")
+        await writer.drain()
         return False
 
-def handle_user_authentication_flow(client_socket, recv_line):
+async def handle_user_authentication_flow(reader, writer, recv_line):
     """Handles the user authentication flow (welcome, register, or login)."""
-    client_socket.send(b"Welcome to the Python BBS!\r\n")
-    client_socket.send(b"Do you want to (1) Register or (2) Login? ")
-    choice = recv_line(client_socket)
+    writer.write("Welcome to the Python BBS!\r\n")
+    writer.write("Do you want to (1) Register or (2) Login? ")
+    await writer.drain()
+    choice = await recv_line()
 
     if choice == '1':  # Registration
-        return handle_registration(client_socket, recv_line)
+        return await handle_registration(reader, writer, recv_line)
     elif choice == '2':  # Login
-        return handle_authentication(client_socket, recv_line)
+        return await handle_authentication(reader, writer, recv_line)
     else:
-        client_socket.send(b"Invalid choice. Connection closed.\r\n")
+        writer.write("Invalid choice. Connection closed.\r\n")
+        await writer.drain()
         return False
