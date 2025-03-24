@@ -6,7 +6,7 @@ from textwrap import wrap
 DATA_DIR = "bbs_data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-async def write_message(reader, writer, recv_line, wrap_width=80):
+async def write_message(reader, writer, recv_line, wrap_width=79):
     """Handles writing a multi-line message with live word wrapping and accurate end signal detection."""
     writer.write("Enter your message (Type '.' on a new line to finish):\r\n")
     await writer.drain()
@@ -43,8 +43,7 @@ async def write_message(reader, writer, recv_line, wrap_width=80):
             await writer.drain()
 
         else:
-            # Check if the character is a space
-            if char == ' ':
+            if char == ' ':  # Handle spaces
                 # Add the current word buffer to the line
                 current_line.extend(word_buffer)
                 current_line.append(char)  # Add the space
@@ -53,16 +52,16 @@ async def write_message(reader, writer, recv_line, wrap_width=80):
             else:
                 word_buffer.append(char)  # Add character to the word buffer
 
-            # Check if the line length exceeds the wrap width
+            # Check if the line length exceeds the adjusted wrap width
             if line_length + len(''.join(word_buffer)) >= wrap_width:
-                # Move the entire word buffer to the next line
+                # Finalize the current line and move the word buffer to the next line
                 current_line.extend(word_buffer)  # Ensure word buffer is part of the current line
                 message_content.append(''.join(current_line).strip())  # Complete the line
                 writer.write("\r\n")  # Move visually to the next line
                 await writer.drain()
-                current_line = []  # Start fresh for the next line
-                word_buffer = []  # Reset the buffer
-                line_length = 0  # Reset line length
+                current_line = word_buffer[:]  # Start the new line with the word buffer
+                word_buffer = []  # Reset the word buffer
+                line_length = len(''.join(current_line))  # Update line length with carried-over word
 
             # Echo characters back as they are typed
             writer.write(char)
