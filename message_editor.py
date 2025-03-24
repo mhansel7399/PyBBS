@@ -6,7 +6,7 @@ import os
 DATA_DIR = "bbs_data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-async def write_message(reader, writer, recv_line, wrap_width=80):
+async def write_message(reader, writer, recv_line, wrap_width=78):
     """Handles writing a multi-line message with real-time word wrapping and newline visibility."""
     writer.write("Enter your message (Press Enter for a new line, type '.' on a new line to finish):\r\n")
     await writer.drain()
