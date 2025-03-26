@@ -18,9 +18,9 @@ logging==0.4.9.6
 multidict==6.2.0
 pendulum==3.0.0
 pony==0.7.19
-propcache==0.3.0
+propcache==0.3.1
 python-dateutil==2.9.0.post0
-setuptools==77.0.3
+setuptools==78.1.0
 six==1.17.0
 sockets==1.0.0
 soupsieve==2.6
@@ -30,7 +30,7 @@ termcolor==2.5.0
 terminaltables==3.1.10
 thread==2.0.5
 time-machine==2.16.0
-typing_extensions==4.12.2
+typing_extensions==4.13.0
 tzdata==2025.2
 websockets==15.0.1
 wrap==2018.3.1
